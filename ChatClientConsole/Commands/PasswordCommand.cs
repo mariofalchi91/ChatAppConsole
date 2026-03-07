@@ -28,7 +28,7 @@ internal class PasswordCommand(UiService ui, ChatManager manager, NetworkService
             return;
         }
 
-        if (string.IsNullOrWhiteSpace(newPass) || newPass.Length < 4)
+        if (string.IsNullOrWhiteSpace(newPass) || newPass.Length < 8)
         {
             ui.PrintSystemMessage("[ERRORE] La password è troppo corta.");
             return;

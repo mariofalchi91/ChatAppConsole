@@ -1,7 +1,10 @@
-﻿namespace ChatServer.Configs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ChatServer.Configs
 {
     public class ChatSettings
     {
-        public string DataFolderPath { get; set; } = "./Data";
+        [Required(AllowEmptyStrings = false, ErrorMessage = "DataFolderPath is required")]
+        public string DataFolderPath { get; init; }
     }
 }
