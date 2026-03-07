@@ -3,6 +3,6 @@
   <Project Path="ChatCommons/ChatCommons.csproj" />
   <Project Path="ChatServer/ChatServer.csproj" />
   <Project Path="TestProject1/TestProject1.csproj" Id="bd7765bd-cdcf-4135-bb36-fa5aee0c14ac">
-    <Build Solution="Debug|*" Project="false" />
+    <!-- <Build Solution="Debug|*" Project="false" /> -->
   </Project>
 </Solution>
