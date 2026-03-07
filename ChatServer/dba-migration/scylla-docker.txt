@@ -1,0 +1,11 @@
+sudo apt update
+sudo apt install docker.io -y
+sudo usermod -aG docker $USER
+docker --version
+docker images
+docker ps -a
+docker run --name scylla-chat-v1 -p 9042:9042 -d scylladb/scylla:latest \
+  --smp 1 \
+  --memory 2G \
+  --authenticator PasswordAuthenticator \
+  --authorizer CassandraAuthorizer

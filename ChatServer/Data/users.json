@@ -1,0 +1,30 @@
+[
+  {
+    "Username": "gigi92",
+    "Password": "$2a$12$JRH7glu.WjGciYQ9hu2Vru/OQg1sqgvF7/HJgBdd2.4fGeKd16pta",
+    "LastLogout": "2026-02-07T16:05:48.7565513Z",
+    "ReadWatermarks": {}
+  },
+  {
+    "Username": "mario91",
+    "Password": "$2a$12$Wx9IYqtgGbeX1IP4KlUNIe78gyESt4jKaomX6mG6pxJe4zYQvAlzi",
+    "LastLogout": "2026-02-07T16:05:49.6958742Z",
+    "ReadWatermarks": {}
+  },
+  {
+    "Username": "pippo",
+    "Password": "$2a$12$Vq5bOlALKJrjAMay6ZER6eqLtF8BQMU3qgNWLA3rJ7Cwe14CsFzGy",
+    "LastLogout": "2026-03-07T00:39:00.5755751Z",
+    "ReadWatermarks": {
+      "pluto": "2026-03-07T00:38:48.5810947Z"
+    }
+  },
+  {
+    "Username": "pluto",
+    "Password": "$2a$12$aVvYIZCWAXyCxEYnNY/tpOOw2cLqAX/yQRBLN/4fxgbDlHbnbcLfS",
+    "LastLogout": "2026-03-07T00:38:59.6948604Z",
+    "ReadWatermarks": {
+      "pippo": "2026-03-07T00:38:52.9174715Z"
+    }
+  }
+]
