@@ -1,0 +1,43 @@
+name: .NET 10 Enterprise CI
+
+on:
+  push:
+    branches: [ "master" ] # Gira dopo il merge
+  pull_request:
+    branches: [ "master" ] # Gira durante la proposta di modifica
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions: # Necessario per scrivere il report dei test sulla PR
+      checks: write
+      pull-requests: write
+      contents: read
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET 10
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Restore Dependencies
+      run: dotnet restore
+
+    - name: Build Solution
+      run: dotnet build --no-restore --configuration Release /p:TreatWarningsAsErrors=true
+
+    # Eseguiamo i test e generiamo il file dei risultati in formato logger trx
+    - name: Run Tests
+      run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=test-results.trx"
+
+    # Pubblica il report grafico dei test su GitHub
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: always() # Gira anche se i test falliscono (fondamentale per vedere COSA è fallito)
+      with:
+        name: .NET Test Results
+        path: "**/test-results.trx"
+        reporter: dotnet-trx
