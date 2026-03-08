@@ -9,16 +9,13 @@ namespace ChatClientConsole.Services;
 
 public class NetworkService
 {
-    private readonly string pepper;
     private readonly HubConnection _connection;
     public event Action<string, string> OnPublicMessageReceived;
     public event Action<string, string> OnPrivateMessageReceived;
     public event Action<string> OnSystemNotificationReceived;
 
-    public NetworkService(IOptions<ChatSettings> options)
+    public NetworkService(IOptions<ClientSettings> options)
     {
-        pepper = options.Value.ClientPepper;
-
         _connection = new HubConnectionBuilder()
             .WithUrl(options.Value.ServerUrl)
             .WithAutomaticReconnect()
@@ -31,20 +28,20 @@ public class NetworkService
 
     public async Task<bool> Register(string user, string pass)
     {
-        var hashedPsw = ComputeClientHash(user, pass);
+        var hashedPsw = CryptoService.HashCredentials(user, pass);
         return await _connection.InvokeAsync<bool>(ChatEvents.Register, user, hashedPsw);
     }
 
     public async Task<LoginResult> Login(string user, string pass)
     {
-        var hashedPsw = ComputeClientHash(user, pass);
+        var hashedPsw = CryptoService.HashCredentials(user, pass);
         return await _connection.InvokeAsync<LoginResult>(ChatEvents.Login, user, hashedPsw);
     }
 
     public async Task<bool> ChangePasswordAsync(string username, string oldPassword, string newPassword)
     {
-        string oldHash = ComputeClientHash(username, oldPassword);
-        string newHash = ComputeClientHash(username, newPassword);
+        string oldHash = CryptoService.HashCredentials(username, oldPassword);
+        string newHash = CryptoService.HashCredentials(username, newPassword);
         return await _connection.InvokeAsync<bool>(ChatEvents.ChangePassword, oldHash, newHash);
     }
 
@@ -59,17 +56,4 @@ public class NetworkService
     public async Task<bool> BlockUserAsync(string username) => await _connection.InvokeAsync<bool>(ChatEvents.BlockUser, username);
     public async Task<bool> UnblockUserAsync(string username) => await _connection.InvokeAsync<bool>(ChatEvents.UnblockUser, username);
     public async Task<List<string>> GetBlockedListAsync() => await _connection.InvokeAsync<List<string>>(ChatEvents.GetBlockedList);
-
-    private string ComputeClientHash(string username, string password)
-    {
-        // psw + salt + pepper
-        string rawData = password + username.ToLower() + pepper;
-        byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawData));
-        StringBuilder builder = new();
-        foreach (var b in bytes)
-        {
-            builder.Append(b.ToString("x2"));
-        }
-        return builder.ToString();
-    }
 }

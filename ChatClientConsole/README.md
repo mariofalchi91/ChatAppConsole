@@ -20,7 +20,7 @@ The client is engineered to handle unpredictable, real-time asynchronous events 
 ## 🔒 Client-Side Security
 
 The client implements a **Pre-Hashing Security Model**:
-Passwords are never transmitted to the server in plain text. The `NetworkService` computes a local SHA-256 hash using the password, a user-specific salt (username), and a statically configured secret pepper (`ClientPepper`). The server only receives and stores this pre-hashed payload.
+Passwords are never transmitted to the server in plain text. The `NetworkService` computes a local hash using the password and a user-specific salt (username). The server only receives and stores this pre-hashed payload.
 
 ## 🚀 Quick Start
 
@@ -28,8 +28,7 @@ Passwords are never transmitted to the server in plain text. The `NetworkService
    ```json
    {
      "ChatSettings": {
-       "ServerUrl": "http://localhost:5000/chat",
-       "ClientPepper": "YOUR_SUPER_SECRET_MIN_10_CHARS_PEPPER"
+       "ServerUrl": "https://localhost:7161/chat"
      }
    }
    ```
