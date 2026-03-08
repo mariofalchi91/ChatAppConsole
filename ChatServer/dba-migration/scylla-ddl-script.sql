@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- 2. TABELLA MESSAGGI PRIVATI
 -- Partition Key: room_id (es. stringa ordinata "alberto_mario")
 -- Clustering Keys: timestamp (per l'ordine) e id (per l'unicità assoluta)
+DROP TABLE IF EXISTS private_messages;
 CREATE TABLE IF NOT EXISTS private_messages (
     room_id text,
     timestamp timestamp,
@@ -17,19 +18,20 @@ CREATE TABLE IF NOT EXISTS private_messages (
     sender text,
     receiver text,
     content text,
-    msg_type text,      -- Mappa l'enum MessageType
+    msg_type int,      -- Mappa l'enum MessageType
     is_read boolean,
     PRIMARY KEY ((room_id), timestamp, id)
 ) WITH CLUSTERING ORDER BY (timestamp ASC);
 -- 3. TABELLA MESSAGGI PUBBLICI
 -- Usiamo 'channel_name' (es. "general") per raggrupparli
+DROP TABLE IF EXISTS public_messages;
 CREATE TABLE IF NOT EXISTS public_messages (
     channel_name text,
     timestamp timestamp,
     id uuid,
     sender text,
     content text,
-    msg_type text,
+    msg_type int,
     PRIMARY KEY ((channel_name), timestamp, id)
 ) WITH CLUSTERING ORDER BY (timestamp ASC);
 -- 4. TABELLA BLOCCHI (Chi ho bloccato io?)
@@ -47,4 +49,11 @@ CREATE TABLE IF NOT EXISTS blocked_by_users (
     blocker text,
     created_at timestamp,
     PRIMARY KEY ((blocked), blocker)
+);
+
+-- 6. TABELLA NOTIFICHE NON LETTE
+CREATE TABLE IF NOT EXISTS unread_notifications (
+    receiver text,
+    sender text,
+    PRIMARY KEY (receiver, sender)
 );

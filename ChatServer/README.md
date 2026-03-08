@@ -12,7 +12,7 @@ The server is designed following the principles of *Separation of Concerns* (SoC
 
 ## ⚙️ Storage Implementations
 
-Currently, the server supports two persistence engines:
+Currently, the server supports three persistence engines:
 
 ### 1. FileChatRepository (File System Storage)
 A thread-safe implementation optimized for disk performance:
@@ -22,6 +22,12 @@ A thread-safe implementation optimized for disk performance:
 
 ### 2. InMemoryChatRepository (Volatile Storage)
 Utilizes thread-safe collections like `ConcurrentBag<T>` and lock-protected dictionaries for ultra-fast in-memory operations. Ideal for unit testing environments or transient public message management.
+
+### 3. ScyllaChatRepository (ScyllaDB Storage)
+A high-performance, horizontally scalable implementation leveraging **ScyllaDB**:
+* **Shard-Aware Driver**: Utilizes the C# ScyllaDB driver for efficient, low-latency operations.
+* **Prepared Statements**: All queries are precompiled to minimize execution time and reduce network overhead.
+* **Automatic Read/Write Management**: Handles private and public messages, user authentication, blocking, and unread notifications with minimal latency.
 
 ## 🔒 Security & Privacy
 

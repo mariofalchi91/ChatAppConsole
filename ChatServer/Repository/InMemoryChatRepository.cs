@@ -14,13 +14,8 @@ namespace ChatServer.Repository
         protected readonly Lock _lockBlacklist = new();
 
         public virtual void AddMessage(ChatMessage message)
-        {         
-            // Solo i messaggi PUBBLICI vanno in memoria
-            // I messaggi PRIVATI vengono gestiti dalle sottoclassi (es. FileChatRepository)
-            if (message.Type == MessageType.Public)
-            {
-                _messages.Add(message);
-            }
+        {
+            _messages.Add(message);
         }
 
         public virtual bool AddUser(UserData user)
@@ -197,6 +192,17 @@ namespace ChatServer.Repository
                     .Select(kvp => kvp.Key)
                     .ToList();
                 return usersWhoBlockedMe;
+            }
+        }
+
+        public virtual void UpdateReadWatermark(string receiver, string sender)
+        {
+            // Logica per InMemoryChatRepository: non abbiamo watermark persistenti
+            // Semplicemente marchiamo i messaggi come letti
+            var messagesToUpdate = GetMessagesToUpdate(sender, receiver);
+            foreach (var msg in messagesToUpdate)
+            {
+                msg.IsRead = true;
             }
         }
     }
