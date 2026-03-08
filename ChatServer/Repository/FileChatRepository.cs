@@ -46,7 +46,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
     /// Genera il nome del file per una coppia di utenti ordinando i nomi alfabeticamente.
     /// Esempio: GetPrivateChatFilePath("mario", "alberto") -> "private_alberto_mario.jsonl"
     /// </summary>
-    private string GetPrivateChatFileName(string user1, string user2)
+    private static string GetPrivateChatFileName(string user1, string user2)
     {
         var users = new[] { user1, user2 };
         Array.Sort(users, StringComparer.OrdinalIgnoreCase);
@@ -80,7 +80,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
     /// Estrae i due nomi utente dal nome del file JSONL.
     /// Esempio: "private_alberto_mario.jsonl" -> ("alberto", "mario")
     /// </summary>
-    private (string user1, string user2) ExtractUsersFromFileName(string fileName)
+    private static (string user1, string user2) ExtractUsersFromFileName(string fileName)
     {
         // Format: private_user1_user2.jsonl
         string withoutExtension = Path.GetFileNameWithoutExtension(fileName);
@@ -123,7 +123,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile caricare blacklist: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile caricare blacklist dal file {FilePath}", _blacklistFilePath);
             }
         }
     }
@@ -148,7 +148,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile salvare blacklist: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile salvare blacklist nel file {FilePath}", _blacklistFilePath);
             }
         }
     }
@@ -186,7 +186,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile caricare utenti: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile caricare utenti dal file {FilePath}", _usersFilePath);
             }
         }
     }
@@ -213,7 +213,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile salvare utenti: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile salvare utenti nel file {FilePath}", _usersFilePath);
             }
         }
     }
@@ -277,7 +277,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile salvare messaggio privato da {message.Sender} a {message.Receiver}: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile salvare messaggio privato da {Sender} a {Receiver} nel file {FilePath}", message.Sender, message.Receiver, filePath);
             }
         }
     }
@@ -293,7 +293,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile salvare messaggio pubblico da {message.Sender}: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile salvare messaggio pubblico da {Sender} nel file {FilePath}", message.Sender, _publicChatFilePath);
             }
         }
     }
@@ -362,14 +362,14 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning($"[WARN] Impossibile deserializzare riga nel file {filePath}: {ex.Message}");
+                        _logger.LogWarning(ex, "[WARN] Impossibile deserializzare riga nel file {FilePath}", filePath);
                         // Continua con la prossima riga
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile leggere storico privato da {filePath}: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile leggere storico privato da {FilePath}", filePath);
             }
 
             return messages;
@@ -404,13 +404,13 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning($"[WARN] Impossibile deserializzare riga nel file {_publicChatFilePath}: {ex.Message}");
+                        _logger.LogWarning(ex, "[WARN] Impossibile deserializzare riga nel file {FilePath}", _publicChatFilePath);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"[ERR] Impossibile leggere storico pubblico da {_publicChatFilePath}: {ex.Message}");
+                _logger.LogError(ex, "[ERR] Impossibile leggere storico pubblico da {FilePath}", _publicChatFilePath);
             }
         }
         return messages;
@@ -433,7 +433,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
     /// Override per aggiornare il watermark quando i messaggi vengono segnati come letti.
     /// Trova l'utente ricevente e aggiorna ReadWatermarks[sender] al timestamp corrente.
     /// </summary>
-    public void UpdateReadWatermark(string receiver, string sender)
+    public override void UpdateReadWatermark(string receiver, string sender)
     {
         var receiverUser = _users.FirstOrDefault(u => u.Username == receiver);
         if (receiverUser == null)
@@ -519,7 +519,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning($"[WARN] Errore durante lettura dell'ultima riga di {filePath}: {ex.Message}");
+                        _logger.LogWarning(ex, "[WARN] Errore durante lettura dell'ultima riga di {FilePath}", filePath);
                         // Continua con il prossimo file
                     }
                 }
@@ -527,7 +527,7 @@ public class FileChatRepository : InMemoryChatRepository, IChatRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError($"[ERR] Errore durante GetUnreadSenders per {receiver}: {ex.Message}");
+            _logger.LogError(ex, "[ERR] Errore durante GetUnreadSenders per {Receiver}", receiver);
         }
 
         return unreadSenders.ToList();

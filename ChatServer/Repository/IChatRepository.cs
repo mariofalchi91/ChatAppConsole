@@ -18,6 +18,7 @@ namespace ChatServer.Repository
         // Gestione Notifiche
         List<string> GetUnreadSenders(string receiver);
         List<ChatMessage> GetMessagesToUpdate(string sender, string receiver);
+        void UpdateReadWatermark(string receiver, string sender);
         // Gestione Blocchi ---
         void BlockUser(string blocker, string blocked);
         void UnblockUser(string blocker, string blocked);

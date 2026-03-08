@@ -14,7 +14,7 @@ The solution is built using **.NET 10** and **C# 14**, structured around a clean
 ## ✨ Current Features
 
 * **Real-Time Messaging**: Instant public channels and one-to-one private chats via ASP.NET Core SignalR.
-* **Pluggable Storage**: Interfaces designed for DI (`IChatRepository`), currently supporting `InMemoryChatRepository` and `FileChatRepository`, allowing hot-swapping of the persistence layer.
+* **Pluggable Storage**: Interfaces designed for DI (`IChatRepository`), currently supporting `InMemoryChatRepository`, `FileChatRepository` and `ScyllaRepository`, allowing hot-swapping of the persistence layer.
 * **Robust Authentication**: Secure password hashing using `BCrypt.Net-Next`.
 * **State Management**: Advanced session tracking, login/logout timestamps, and read receipt watermarks.
 
@@ -30,10 +30,11 @@ Every Pull Request targeting the `master` branch must pass the "Gold Standard" c
 
 This project is actively evolving towards a production-ready, highly available distributed system:
 
-- [ ] **ScyllaDB Persistence**: Migrating the storage layer to a high-performance C++ NoSQL database. We will utilize the official `ScyllaDBCSharpDriver` with Shard-Aware routing for sub-millisecond read/write latency.
-- [ ] **Comprehensive Unit Testing**: Expanding `TestProject1` to achieve high code coverage across all core components, including robust mocks for repository and network interactions.
-- [ ] **Zero-Trust End-to-End Encryption (E2EE)**: Implementing symmetric encryption using pre-shared keys (shared out-of-band). The server and database will only process and store ciphertext, ensuring a true Zero-Trust architecture where the infrastructure has zero visibility into message content.
-- [ ] **Containerization**: Full Docker support for seamless deployment of the server, database, and background workers.
+- ☑ **ScyllaDB Persistence**: Migrating the storage layer to a high-performance C++ NoSQL database. We will utilize the official `ScyllaDBCSharpDriver` with Shard-Aware routing for sub-millisecond read/write latency.
+- ☐ **Comprehensive Unit Testing**: Expanding `TestProject1` to achieve high code coverage across all core components, including robust mocks for repository and network interactions.
+- ☐ **Zero-Trust End-to-End Encryption (E2EE)**: Implementing symmetric encryption using pre-shared keys (shared out-of-band). The server and database will only process and store ciphertext, ensuring a true Zero-Trust architecture where the infrastructure has zero visibility into message content.
+- ☐ **Containerization**: Full Docker support for seamless deployment of the server, database, and background workers.
+- ☐ **Group chats**: Support for group chats.
 
 ## ⚡ Quick Start
 
