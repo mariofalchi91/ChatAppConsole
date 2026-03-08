@@ -19,8 +19,8 @@ class Program
             .Build();
 
         var services = new ServiceCollection();
-        services.AddOptions<ChatSettings>()
-            .BindConfiguration((nameof(ChatSettings)))
+        services.AddOptions<ClientSettings>()
+            .BindConfiguration((nameof(ClientSettings)))
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
