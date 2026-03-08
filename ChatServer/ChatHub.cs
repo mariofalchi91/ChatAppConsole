@@ -240,20 +240,8 @@ public class ChatHub(ILogger<ChatHub> logger, IChatRepository repository) : Hub
             return Task.CompletedTask;
         }
 
-        // Aggiorna il watermark dell'utente ricevente
-        if (repository is FileChatRepository fileChatRepo)
-        {
-            fileChatRepo.UpdateReadWatermark(myName, sender);
-        }
-        else
-        {
-            // Fallback per InMemoryRepository (logica base con messaggi in memoria)
-            var messagesToUpdate = repository.GetMessagesToUpdate(sender, myName);
-            foreach (var msg in messagesToUpdate)
-            {
-                msg.IsRead = true;
-            }
-        }
+        // Aggiorna il watermark dell'utente ricevente (implementazione polimorfica)
+        repository.UpdateReadWatermark(myName, sender);
 
         return Task.CompletedTask;
     }
@@ -291,6 +279,10 @@ public class ChatHub(ILogger<ChatHub> logger, IChatRepository repository) : Hub
     {
         var me = ConnectedUsers.FirstOrDefault(x => x.Value == Context.ConnectionId).Key;
         if (me == null)
+        {
+            return false;
+        }
+        if (userToUnblock.Equals(me, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }

@@ -143,7 +143,7 @@ public class ChatManager(NetworkService network, UiService ui)
         ui.PrintSystemMessage("════ UTENTI BLOCCATI ════");
         foreach (var user in _blockedUsersCache)
         {
-            ui.PrintSystemMessage($"  • {user}", reprintPrompt: false);
+            ui.PrintSystemMessage($" - {user}", reprintPrompt: false);
         }
         ui.PrintPrompt();
     }
