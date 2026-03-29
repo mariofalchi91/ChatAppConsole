@@ -24,7 +24,7 @@ public class UiService
         lock (_consoleLock)
         {
             ClearCurrentLine();
-            var timestamp = $"[{time:HH:mm.ss}]";
+            var timestamp = $"[{time.ToString("yyyy-MM-dd HH.mm.ss")}]";
             string prefix = type == MessageType.Private ? "[PRIVATO] " : "";
             var formattedMsg = $"{timestamp} {prefix}{sender}: {content}";
 

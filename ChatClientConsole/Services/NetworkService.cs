@@ -1,6 +1,8 @@
 ﻿using ChatClientConsole.Configs;
 using ChatCommons;
+using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,7 +19,34 @@ public class NetworkService
     public NetworkService(IOptions<ClientSettings> options)
     {
         _connection = new HubConnectionBuilder()
-            .WithUrl(options.Value.ServerUrl)
+            .WithUrl(options.Value.ServerUrl,
+            configureHttpConnection =>
+            {
+                // HEADER PER LOCALTUNNEL (Sostituisce quello del Dev Tunnel)
+                configureHttpConnection.Headers.Add("bypass-tunnel-reminder", "true");
+
+                // Inietta l'header anche nella fase di handshake del WebSocket
+                configureHttpConnection.WebSocketConfiguration = wsOptions =>
+                {
+                    wsOptions.SetRequestHeader("bypass-tunnel-reminder", "true");
+                };
+
+                //// Se avevi ancora problemi di certificato con l'URL .loca.lt
+                //configureHttpConnection.HttpMessageHandlerFactory = (handler) =>
+                //{
+                //    if (handler is HttpClientHandler clientHandler)
+                //    {
+                //        clientHandler.ServerCertificateCustomValidationCallback =
+                //            (message, cert, chain, errors) => true;
+                //    }
+                //    return handler;
+                //};
+            })
+            .ConfigureLogging(logging =>
+            {
+                logging.AddConsole();
+                logging.SetMinimumLevel(LogLevel.Warning);
+            })
             .WithAutomaticReconnect()
             .Build();
 

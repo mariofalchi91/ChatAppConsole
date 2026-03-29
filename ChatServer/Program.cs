@@ -9,6 +9,8 @@ var config = new ConfigurationBuilder()
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseUrls("http://*:5161"); // forza ascolto su http 5161
+
 builder.Configuration.AddConfiguration(config);
 
 builder.Services.AddOptions<ChatSettings>()
@@ -36,7 +38,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // per problemi con https commentare la riga sotto
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 // Questo è l'URL che userà il client: http://tuo-ip:porta/chat
 app.MapHub<ChatHub>("/chat");
