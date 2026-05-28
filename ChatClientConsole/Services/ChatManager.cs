@@ -2,7 +2,7 @@
 
 namespace ChatClientConsole.Services;
 
-public class ChatManager(NetworkService network, UiService ui)
+public class ChatManager(NetworkService network, UiService ui, PrivateChatKeyService keyService)
 {
     public string MyUsername { get; set; }
     public MessageType CurrentChatType { get; private set; } = MessageType.Public;
@@ -71,26 +71,104 @@ public class ChatManager(NetworkService network, UiService ui)
             return;
         }
 
+        if (!EnsureKeyForPeer(target))
+        {
+            return;
+        }
+
+        var history = await network.GetPrivateHistory(MyUsername, target);
+        var decryptedHistory = new List<ChatMessage>(history.Count);
+        foreach (var msg in history)
+        {
+            if (!keyService.TryDecryptForPeer(target, msg.Content, out var plaintext, out var decryptError))
+            {
+                ui.PrintSystemMessage($"[E2E] {decryptError}");
+                ui.PrintSystemMessage($"[E2E] Reimposta la chiave con #keyreset {target} e poi #keyset {target}.");
+                return;
+            }
+
+            decryptedHistory.Add(new ChatMessage
+            {
+                Id = msg.Id,
+                Sender = msg.Sender,
+                Receiver = msg.Receiver,
+                Type = msg.Type,
+                Timestamp = msg.Timestamp,
+                IsRead = msg.IsRead,
+                Content = plaintext
+            });
+        }
+
         CurrentChatType = MessageType.Private;
         CurrentChatPartnerName = target;
         ui.Clear();
         ui.SetTitle($"{MyUsername} - Privata con {target}");
         ui.PrintSystemMessage($"═══ CHAT PRIVATA CON {target.ToUpper()} ═══", reprintPrompt: false);
 
-        var history = await network.GetPrivateHistory(MyUsername, target);
-        foreach (var msg in history)
+        foreach (var msg in decryptedHistory)
         {
-            // MODIFICA QUI: isRead: msg.IsRead
             ui.PrintMessage(msg.Sender, msg.Content, msg.Timestamp,
                                    isMe: (msg.Sender == MyUsername),
-                                   isRead: msg.IsRead, // <--- Usiamo il flag del server
+                                   isRead: msg.IsRead,
                                    type: MessageType.Private,
                                    reprintPrompt: false);
         }
-        // Se ho appena aperto la chat e scaricato lo storico, 
-        // dico al server che ho letto tutto quello che c'era in sospeso.
+
         await network.MarkAsRead(target);
-        //ui.PrintPrompt();
+    }
+
+    public virtual bool InitializeCryptoSession(string username, string password)
+    {
+        if (keyService.TryInitializeSession(username, password, out var error))
+        {
+            return true;
+        }
+
+        ui.PrintSystemMessage($"[E2E] {error}");
+        ui.PrintSystemMessage("[E2E] Le chiavi locali non sono state caricate. Reinseriscile quando apri le chat private.");
+        return false;
+    }
+
+    public virtual bool SetPrivateKey(string target, string sharedSecret, out string error)
+    {
+        return keyService.TrySetKeyForPeer(target, sharedSecret, out error);
+    }
+
+    public virtual bool ResetPrivateKey(string target, out string error)
+    {
+        return keyService.RemoveKeyForPeer(target, out error);
+    }
+
+    public virtual bool TryEncryptCurrentPrivateMessage(string plaintext, out string ciphertext, out string error)
+    {
+        ciphertext = string.Empty;
+        error = string.Empty;
+
+        if (CurrentChatType != MessageType.Private || string.IsNullOrWhiteSpace(CurrentChatPartnerName))
+        {
+            error = "Nessuna chat privata attiva.";
+            return false;
+        }
+
+        return keyService.TryEncryptForPeer(CurrentChatPartnerName, plaintext, out ciphertext, out error);
+    }
+
+    public virtual bool TryDecryptPrivatePayload(string sender, string ciphertext, out string plaintext, out string error)
+    {
+        plaintext = string.Empty;
+        error = string.Empty;
+
+        var peer = sender.Equals(MyUsername, StringComparison.OrdinalIgnoreCase)
+            ? CurrentChatPartnerName
+            : sender;
+
+        if (string.IsNullOrWhiteSpace(peer))
+        {
+            error = "Impossibile identificare la chat privata associata al messaggio.";
+            return false;
+        }
+
+        return keyService.TryDecryptForPeer(peer, ciphertext, out plaintext, out error);
     }
 
     public virtual async Task InitializeAsync()
@@ -146,5 +224,31 @@ public class ChatManager(NetworkService network, UiService ui)
             ui.PrintSystemMessage($" - {user}", reprintPrompt: false);
         }
         ui.PrintPrompt();
+    }
+
+    private bool EnsureKeyForPeer(string target)
+    {
+        if (keyService.HasKeyForPeer(target))
+        {
+            return true;
+        }
+
+        ui.PrintSystemMessage($"[E2E] Inserisci la chiave condivisa per {target} (obbligatoria):", reprintPrompt: false);
+        var key = ui.ReadPassword();
+
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            ui.PrintSystemMessage("[E2E] Chat privata annullata: chiave non inserita.");
+            return false;
+        }
+
+        if (!keyService.TrySetKeyForPeer(target, key, out var error))
+        {
+            ui.PrintSystemMessage($"[E2E] {error}");
+            return false;
+        }
+
+        ui.PrintSystemMessage($"[E2E] Chiave privata configurata per {target}.");
+        return true;
     }
 }

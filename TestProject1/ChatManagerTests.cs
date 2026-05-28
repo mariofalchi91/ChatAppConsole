@@ -13,7 +13,7 @@ public class ChatManagerTests
     {
         var network = CreateNetworkMock();
         network.Setup(n => n.GetBlockedListAsync()).ReturnsAsync(["Alice", "Bob"]);
-        var manager = new ChatManager(network.Object, new Mock<UiService>().Object);
+        var manager = new ChatManager(network.Object, new Mock<UiService>().Object, CreateKeyService());
 
         await manager.InitializeAsync();
 
@@ -27,7 +27,7 @@ public class ChatManagerTests
         var network = CreateNetworkMock();
         network.Setup(n => n.BlockUserAsync("bob")).ReturnsAsync(true);
         var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object);
+        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService());
 
         await manager.BlockUserAsync("bob");
 
@@ -41,7 +41,7 @@ public class ChatManagerTests
         var network = CreateNetworkMock();
         network.Setup(n => n.BlockUserAsync("bob")).ReturnsAsync(false);
         var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object);
+        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService());
 
         await manager.BlockUserAsync("bob");
 
@@ -55,7 +55,7 @@ public class ChatManagerTests
         var network = CreateNetworkMock();
         network.Setup(n => n.BlockUserAsync("bob")).ReturnsAsync(true);
         network.Setup(n => n.UnblockUserAsync("bob")).ReturnsAsync(true);
-        var manager = new ChatManager(network.Object, new Mock<UiService>().Object);
+        var manager = new ChatManager(network.Object, new Mock<UiService>().Object, CreateKeyService());
 
         await manager.BlockUserAsync("bob");
         await manager.UnblockUserAsync("bob");
@@ -96,7 +96,7 @@ public class ChatManagerTests
         var network = CreateNetworkMock();
         network.Setup(n => n.CheckUserExists("ghost")).ReturnsAsync(false);
         var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object) { MyUsername = "alice" };
+        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService()) { MyUsername = "alice" };
 
         await manager.SwitchToPrivateAsync("ghost");
 
@@ -107,10 +107,11 @@ public class ChatManagerTests
     [Fact]
     public async Task SwitchToPrivateAsync_Success_LoadsHistoryAndMarksRead()
     {
+        var sharedKey = "shared-bob";
         var history = new List<ChatMessage>
         {
-            new() { Sender = "alice", Receiver = "bob", Content = "1", Type = MessageType.Private, IsRead = true, Timestamp = DateTime.UtcNow.AddMinutes(-2) },
-            new() { Sender = "bob", Receiver = "alice", Content = "2", Type = MessageType.Private, IsRead = false, Timestamp = DateTime.UtcNow.AddMinutes(-1) }
+            new() { Sender = "alice", Receiver = "bob", Content = CryptoService.EncryptMessage("1", sharedKey), Type = MessageType.Private, IsRead = true, Timestamp = DateTime.UtcNow.AddMinutes(-2) },
+            new() { Sender = "bob", Receiver = "alice", Content = CryptoService.EncryptMessage("2", sharedKey), Type = MessageType.Private, IsRead = false, Timestamp = DateTime.UtcNow.AddMinutes(-1) }
         };
 
         var network = CreateNetworkMock();
@@ -119,7 +120,9 @@ public class ChatManagerTests
         network.Setup(n => n.MarkAsRead("bob")).Returns(Task.CompletedTask);
 
         var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object) { MyUsername = "alice" };
+        ui.Setup(u => u.ReadPassword()).Returns(sharedKey);
+        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService()) { MyUsername = "alice" };
+        manager.InitializeCryptoSession("alice", "password");
 
         await manager.SwitchToPrivateAsync("bob");
 
@@ -130,17 +133,56 @@ public class ChatManagerTests
         ui.Verify(u => u.PrintMessage("bob", "2", It.IsAny<DateTime>(), false, false, MessageType.Private, false), Times.Once);
     }
 
+    [Fact]
+    public async Task SwitchToPrivateAsync_WhenHistoryCannotBeDecrypted_DoesNotMarkAsRead()
+    {
+        var history = new List<ChatMessage>
+        {
+            new() { Sender = "bob", Receiver = "alice", Content = CryptoService.EncryptMessage("secret", "real-key"), Type = MessageType.Private, IsRead = false, Timestamp = DateTime.UtcNow }
+        };
+
+        var network = CreateNetworkMock();
+        network.Setup(n => n.CheckUserExists("bob")).ReturnsAsync(true);
+        network.Setup(n => n.GetPrivateHistory("alice", "bob")).ReturnsAsync(history);
+        network.Setup(n => n.MarkAsRead("bob")).Returns(Task.CompletedTask);
+
+        var ui = new Mock<UiService>();
+        ui.Setup(u => u.ReadPassword()).Returns("wrong-key");
+
+        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService()) { MyUsername = "alice" };
+        manager.InitializeCryptoSession("alice", "password");
+
+        await manager.SwitchToPrivateAsync("bob");
+
+        Assert.Equal(MessageType.Public, manager.CurrentChatType);
+        network.Verify(n => n.MarkAsRead("bob"), Times.Never);
+    }
+
     private static Mock<NetworkService> CreateNetworkMock()
     {
         var options = Options.Create(new ClientSettings { ServerUrl = "http://localhost" });
         return new Mock<NetworkService>(options) { CallBase = false };
     }
 
+    private static PrivateChatKeyService CreateKeyService()
+    {
+        var settings = Options.Create(new ClientSettings
+        {
+            ServerUrl = "http://localhost",
+            E2EPrivate = new E2EPrivateSettings
+            {
+                EnableLocalKeyVault = false,
+                LocalKeyVaultPath = ".chatclient/test-e2e-keys.json"
+            }
+        });
+        return new PrivateChatKeyService(settings);
+    }
+
     private static Mock<ChatManager> CreateManagerMock()
     {
         var network = CreateNetworkMock();
         var ui = new Mock<UiService>();
-        return new Mock<ChatManager>(network.Object, ui.Object) { CallBase = false };
+        return new Mock<ChatManager>(network.Object, ui.Object, CreateKeyService()) { CallBase = false };
     }
 
     private static void SetChatType(ChatManager manager, MessageType type)

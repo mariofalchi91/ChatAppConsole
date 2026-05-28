@@ -28,6 +28,8 @@ class Program
         services.AddSingleton<IConfiguration>(config);
         // NetworkService
         services.AddSingleton<NetworkService>();
+        // E2E key management service
+        services.AddSingleton<PrivateChatKeyService>();
         // ChatManager
         services.AddSingleton<ChatManager>();
         // UiService

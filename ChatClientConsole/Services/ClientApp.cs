@@ -66,7 +66,13 @@ public class ClientApp(NetworkService network, ChatManager chatManager, IEnumera
                 }
                 else
                 {
-                    await network.SendPrivateMessage(chatManager.MyUsername, chatManager.CurrentChatPartnerName, input);
+                    if (!chatManager.TryEncryptCurrentPrivateMessage(input, out var cipherText, out var encryptError))
+                    {
+                        ui.PrintSystemMessage($"[E2E] {encryptError}");
+                        continue;
+                    }
+
+                    await network.SendPrivateMessage(chatManager.MyUsername, chatManager.CurrentChatPartnerName, cipherText);
                 }
             }
         }
@@ -99,6 +105,7 @@ public class ClientApp(NetworkService network, ChatManager chatManager, IEnumera
                 {
                     case LoginResult.Success:
                         chatManager.MyUsername = user;
+                        chatManager.InitializeCryptoSession(user, pass);
                         // Usciamo dal while e procediamo
                         return;
 
@@ -122,6 +129,7 @@ public class ClientApp(NetworkService network, ChatManager chatManager, IEnumera
                 await network.Register(user, pass);
                 await network.Login(user, pass);
                 chatManager.MyUsername = user;
+                chatManager.InitializeCryptoSession(user, pass);
                 break;
             }
         }
@@ -151,7 +159,13 @@ public class ClientApp(NetworkService network, ChatManager chatManager, IEnumera
             if (isChatActive)
             {
                 bool isMe = sender == chatManager.MyUsername;
-                ui.PrintMessage(sender, msg, DateTime.Now, isMe, isRead: false, type: MessageType.Private, reprintPrompt: true);
+                if (!chatManager.TryDecryptPrivatePayload(sender, msg, out var plaintext, out var decryptError))
+                {
+                    ui.PrintSystemMessage($"[E2E] {decryptError}", reprintPrompt: true);
+                    return;
+                }
+
+                ui.PrintMessage(sender, plaintext, DateTime.Now, isMe, isRead: false, type: MessageType.Private, reprintPrompt: true);
 
                 if (!isMe)
                 {

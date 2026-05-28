@@ -208,6 +208,36 @@ public class CommandTests
             text.IndexOf("#alpha", StringComparison.Ordinal) < text.IndexOf("#zeta", StringComparison.Ordinal)), false), Times.Once);
     }
 
+    [Fact]
+    public async Task KeySetCommand_ExecuteAsync_ValidInput_SetsKey()
+    {
+        var manager = CreateManagerMock();
+        string setError = string.Empty;
+        manager.Setup(m => m.SetPrivateKey("bob", "secret", out setError)).Returns(true);
+
+        var ui = new Mock<UiService>();
+        ui.Setup(u => u.ReadPassword()).Returns("secret");
+        var command = new KeySetCommand(manager.Object, ui.Object);
+
+        await command.ExecuteAsync("#keyset bob");
+
+        manager.Verify(m => m.SetPrivateKey("bob", "secret", out setError), Times.Once);
+    }
+
+    [Fact]
+    public async Task KeyResetCommand_ExecuteAsync_ValidInput_ResetsKey()
+    {
+        var manager = CreateManagerMock();
+        string resetError = string.Empty;
+        manager.Setup(m => m.ResetPrivateKey("bob", out resetError)).Returns(true);
+
+        var command = new KeyResetCommand(manager.Object, new Mock<UiService>().Object);
+
+        await command.ExecuteAsync("#keyreset bob");
+
+        manager.Verify(m => m.ResetPrivateKey("bob", out resetError), Times.Once);
+    }
+
     private static Mock<NetworkService> CreateNetworkMock()
     {
         var options = Options.Create(new ClientSettings { ServerUrl = "http://localhost" });
@@ -218,7 +248,22 @@ public class CommandTests
     {
         var network = CreateNetworkMock();
         var ui = new Mock<UiService>();
-        return new Mock<ChatManager>(network.Object, ui.Object) { CallBase = false };
+        return new Mock<ChatManager>(network.Object, ui.Object, CreateKeyService()) { CallBase = false };
+    }
+
+    private static PrivateChatKeyService CreateKeyService()
+    {
+        var settings = Options.Create(new ClientSettings
+        {
+            ServerUrl = "http://localhost",
+            E2EPrivate = new E2EPrivateSettings
+            {
+                EnableLocalKeyVault = false,
+                LocalKeyVaultPath = ".chatclient/test-e2e-keys.json"
+            }
+        });
+
+        return new PrivateChatKeyService(settings);
     }
 
     private static void SetChatType(ChatManager manager, MessageType type)

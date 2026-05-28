@@ -29,6 +29,22 @@ public class ClientSettingsValidationTests
         Assert.True(TryValidate(model));
     }
 
+    [Fact]
+    public void ClientSettings_WithEmptyVaultPath_IsInvalid()
+    {
+        var model = new ClientSettings
+        {
+            ServerUrl = "http://localhost:5000/chat",
+            E2EPrivate = new E2EPrivateSettings
+            {
+                EnableLocalKeyVault = true,
+                LocalKeyVaultPath = string.Empty
+            }
+        };
+
+        Assert.False(TryValidate(model));
+    }
+
     private static bool TryValidate(object model)
     {
         var context = new ValidationContext(model);
