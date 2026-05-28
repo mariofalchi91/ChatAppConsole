@@ -21,6 +21,13 @@ For feature-level details, use the existing docs first:
 
 Run from repository root unless noted.
 
+For local builds, prefer restoring only from nuget.org:
+
+```bash
+dotnet restore ChatAppConsole.slnx --source https://api.nuget.org/v3/index.json
+dotnet build ChatAppConsole.slnx --no-restore --configuration Debug /p:TreatWarningsAsErrors=true
+```
+
 ```bash
 dotnet restore
 dotnet build --configuration Debug /p:TreatWarningsAsErrors=true
