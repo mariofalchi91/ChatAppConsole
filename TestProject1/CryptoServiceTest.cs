@@ -172,4 +172,45 @@ public class CryptoServiceTest
         // Assert
         Assert.Equal(expectedHash, actualHash);
     }
+
+    [Fact]
+    public void HashCredentials_SameInput_ReturnsDeterministicHash()
+    {
+        // Arrange
+        var username = "Alice";
+        var password = "P@ssw0rd!";
+
+        // Act
+        var hash1 = CryptoService.HashCredentials(username, password);
+        var hash2 = CryptoService.HashCredentials(username, password);
+
+        // Assert
+        Assert.Equal(hash1, hash2);
+    }
+
+    [Fact]
+    public void HashCredentials_UsernameCaseInsensitive_ReturnsSameHash()
+    {
+        // Arrange
+        var password = "P@ssw0rd!";
+
+        // Act
+        var hash1 = CryptoService.HashCredentials("Alice", password);
+        var hash2 = CryptoService.HashCredentials("alice", password);
+
+        // Assert
+        Assert.Equal(hash1, hash2);
+    }
+
+    [Fact]
+    public void HashCredentials_EmptyUsername_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => CryptoService.HashCredentials(string.Empty, "pwd"));
+    }
+
+    [Fact]
+    public void HashCredentials_EmptyPassword_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => CryptoService.HashCredentials("user", string.Empty));
+    }
 }

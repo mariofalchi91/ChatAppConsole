@@ -16,6 +16,7 @@ For feature-level details, use the existing docs first:
 - [Server docs](ChatServer/README.md)
 - [Client docs](ChatClientConsole/README.md)
 - [Shared library docs](ChatCommons/README.md)
+- [Test suite scope](TestProject1/README.md)
 
 ## Build, Test, Run
 
@@ -26,6 +27,7 @@ For local builds, prefer restoring only from nuget.org:
 ```bash
 dotnet restore ChatAppConsole.slnx --source https://api.nuget.org/v3/index.json
 dotnet build ChatAppConsole.slnx --no-restore --configuration Debug /p:TreatWarningsAsErrors=true
+dotnet test ChatAppConsole.slnx --no-build --configuration Debug --logger "trx;LogFileName=test-results.trx"
 ```
 
 ```bash
@@ -51,6 +53,9 @@ dotnet run
 CI reference:
 - [GitHub Actions workflow](.github/workflows/dotnet-ci.yml)
 
+Test suite reference:
+- [TestProject1 README](TestProject1/README.md)
+
 ## Architecture Boundaries
 
 - Keep shared contracts/event names in `ChatCommons` so client/server stay aligned.
@@ -70,10 +75,18 @@ CI reference:
 ## Environment and Pitfalls
 
 - Workspace may run from Windows over WSL path. Prefer running `dotnet` in the same environment where files are mounted.
+- When running from Windows UNC paths (for example `\\wsl.localhost\...`), `dotnet test` may fail loading `testhost.dll`.
+  - Prefer a non-UNC local path or run commands directly in a consistent WSL/local environment.
 - Default server setup uses `ScyllaRepository`; local runs require Scylla config in `ChatServer/appsettings.json`.
   - If Scylla is unavailable for local development, switch DI registration in `ChatServer/Program.cs` to in-memory or file repository.
 - Client endpoint is configured in `ChatClientConsole/appsettings.json` (`ChatSettings:ServerUrl`).
 - HTTPS redirection is enabled on server; local cert/trust issues can block client connections.
+
+## Test Boundaries
+
+- Current baseline in `TestProject1` focuses on unit-testable behavior only.
+- Integration tests are intentionally out of scope for now (real Scylla, real SignalR end-to-end).
+- Before adding new tests, check [TestProject1 README](TestProject1/README.md) to avoid duplicating scope.
 
 ## Agent Working Rules
 

@@ -10,7 +10,7 @@ public class ChatManager(NetworkService network, UiService ui)
 
     private HashSet<string> _blockedUsersCache = new(StringComparer.OrdinalIgnoreCase);
 
-    public async Task RefreshCurrentViewAsync()
+    public virtual async Task RefreshCurrentViewAsync()
     {
         if (CurrentChatType == MessageType.Public)
         {
@@ -22,7 +22,7 @@ public class ChatManager(NetworkService network, UiService ui)
         }
     }
 
-    public async Task SwitchToPublicAsync()
+    public virtual async Task SwitchToPublicAsync()
     {
         CurrentChatType = MessageType.Public;
         CurrentChatPartnerName = string.Empty;
@@ -57,7 +57,7 @@ public class ChatManager(NetworkService network, UiService ui)
         }
     }
 
-    public async Task SwitchToPrivateAsync(string target)
+    public virtual async Task SwitchToPrivateAsync(string target)
     {
         bool exists = await network.CheckUserExists(target);
         if (!exists)
@@ -93,18 +93,18 @@ public class ChatManager(NetworkService network, UiService ui)
         //ui.PrintPrompt();
     }
 
-    public async Task InitializeAsync()
+    public virtual async Task InitializeAsync()
     {
         var list = await network.GetBlockedListAsync();
         _blockedUsersCache = new HashSet<string>(list, StringComparer.OrdinalIgnoreCase);
     }
 
-    public bool IsUserBlocked(string username)
+    public virtual bool IsUserBlocked(string username)
     {
         return _blockedUsersCache.Contains(username);
     }
 
-    public async Task BlockUserAsync(string target)
+    public virtual async Task BlockUserAsync(string target)
     {
         bool success = await network.BlockUserAsync(target);
         if (success)
@@ -118,7 +118,7 @@ public class ChatManager(NetworkService network, UiService ui)
         }
     }
 
-    public async Task UnblockUserAsync(string target)
+    public virtual async Task UnblockUserAsync(string target)
     {
         bool success = await network.UnblockUserAsync(target);
         if (success)
@@ -132,7 +132,7 @@ public class ChatManager(NetworkService network, UiService ui)
         }
     }
 
-    public void PrintBlockedList()
+    public virtual void PrintBlockedList()
     {
         if (_blockedUsersCache.Count == 0)
         {

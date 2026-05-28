@@ -7,7 +7,7 @@ public class UiService
     private readonly Lock _consoleLock = new();
     private bool _isPromptVisible = false;
 
-    public void ClearCurrentLine()
+    public virtual void ClearCurrentLine()
     {
         lock (_consoleLock)
         {
@@ -19,7 +19,7 @@ public class UiService
         }
     }
 
-    public void PrintMessage(string sender, string content, DateTime time, bool isMe, bool isRead, MessageType type, bool reprintPrompt = true)
+    public virtual void PrintMessage(string sender, string content, DateTime time, bool isMe, bool isRead, MessageType type, bool reprintPrompt = true)
     {
         lock (_consoleLock)
         {
@@ -60,7 +60,7 @@ public class UiService
         }
     }
 
-    public void PrintSystemMessage(string text, bool reprintPrompt = true)
+    public virtual void PrintSystemMessage(string text, bool reprintPrompt = true)
     {
         lock (_consoleLock)
         {
@@ -76,7 +76,7 @@ public class UiService
         }
     }
 
-    public void PrintPrompt()
+    public virtual void PrintPrompt()
     {
         lock (_consoleLock)
         {
@@ -90,7 +90,7 @@ public class UiService
         }
     }
 
-    public string ReadPassword()
+    public virtual string ReadPassword()
     {
         lock (_consoleLock)
         {
@@ -118,7 +118,7 @@ public class UiService
         }
     }
 
-    public void Clear()
+    public virtual void Clear()
     {
         lock (_consoleLock)
         {
@@ -126,7 +126,7 @@ public class UiService
         }
     }
 
-    public void SetTitle(string title)
+    public virtual void SetTitle(string title)
     {
         lock (_consoleLock)
         {
@@ -134,7 +134,7 @@ public class UiService
         }
     }
 
-    public void Print(string message, bool isInline = false)
+    public virtual void Print(string message, bool isInline = false)
     {
         lock (_consoleLock)
         {
@@ -151,7 +151,7 @@ public class UiService
         }
     }
 
-    public string ReadInput(bool reprintPrompt = true)
+    public virtual string ReadInput(bool reprintPrompt = true)
     {
         if (reprintPrompt)
         {

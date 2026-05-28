@@ -2,7 +2,7 @@
 
 namespace ChatClientConsole.Commands;
 
-internal class PasswordCommand(UiService ui, ChatManager manager, NetworkService network) : IClientCommand
+public class PasswordCommand(UiService ui, ChatManager manager, NetworkService network) : IClientCommand
 {
     public string Usage => "#password";
     public string Description => "Cambia la password di accesso";
