@@ -2,7 +2,7 @@
 
 namespace ChatClientConsole.Commands;
 
-internal class BlockCommand(ChatManager manager, UiService ui) : IClientCommand
+public class BlockCommand(ChatManager manager, UiService ui) : IClientCommand
 {
     public string Usage => "#block";
     public string Description => "Blocca un utente (es. #block username)";
