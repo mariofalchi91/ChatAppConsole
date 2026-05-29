@@ -205,7 +205,7 @@ public class CommandTests
     public async Task KeySetCommand_ExecuteAsync_ValidInput_SetsKey()
     {
         var manager = CreateManagerMock();
-        string setError = string.Empty;
+        string setError = null!;
         manager.SetPrivateKey("bob", "secret", out setError).Returns(true);
 
         var ui = Substitute.For<UiService>();
@@ -221,7 +221,7 @@ public class CommandTests
     public async Task KeyResetCommand_ExecuteAsync_ValidInput_ResetsKey()
     {
         var manager = CreateManagerMock();
-        string resetError = string.Empty;
+        string resetError = null!;
         manager.ResetPrivateKey("bob", out resetError).Returns(true);
 
         var command = new KeyResetCommand(manager, Substitute.For<UiService>());
