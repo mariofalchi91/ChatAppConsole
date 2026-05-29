@@ -2,7 +2,8 @@ using ChatClientConsole.Configs;
 using ChatClientConsole.Services;
 using ChatCommons;
 using Microsoft.Extensions.Options;
-using Moq;
+using NSubstitute;
+using NSubstitute.Extensions;
 
 namespace TestProject1;
 
@@ -12,8 +13,8 @@ public class ChatManagerTests
     public async Task InitializeAsync_LoadsBlockedUsersInCache()
     {
         var network = CreateNetworkMock();
-        network.Setup(n => n.GetBlockedListAsync()).ReturnsAsync(["Alice", "Bob"]);
-        var manager = new ChatManager(network.Object, new Mock<UiService>().Object, CreateKeyService());
+        network.GetBlockedListAsync().Returns(["Alice", "Bob"]);
+        var manager = new ChatManager(network, Substitute.For<UiService>(), CreateKeyService());
 
         await manager.InitializeAsync();
 
@@ -25,37 +26,37 @@ public class ChatManagerTests
     public async Task BlockUserAsync_WhenSuccess_AddsToCacheAndPrintsMessage()
     {
         var network = CreateNetworkMock();
-        network.Setup(n => n.BlockUserAsync("bob")).ReturnsAsync(true);
-        var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService());
+        network.BlockUserAsync("bob").Returns(true);
+        var ui = Substitute.For<UiService>();
+        var manager = new ChatManager(network, ui, CreateKeyService());
 
         await manager.BlockUserAsync("bob");
 
         Assert.True(manager.IsUserBlocked("bob"));
-        ui.Verify(u => u.PrintSystemMessage("[BLOCCATO] bob non potrà più scriverti.", true), Times.Once);
+        ui.Received(1).PrintSystemMessage("[BLOCCATO] bob non potrà più scriverti.", true);
     }
 
     [Fact]
     public async Task BlockUserAsync_WhenFailure_DoesNotAddToCacheAndPrintsError()
     {
         var network = CreateNetworkMock();
-        network.Setup(n => n.BlockUserAsync("bob")).ReturnsAsync(false);
-        var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService());
+        network.BlockUserAsync("bob").Returns(false);
+        var ui = Substitute.For<UiService>();
+        var manager = new ChatManager(network, ui, CreateKeyService());
 
         await manager.BlockUserAsync("bob");
 
         Assert.False(manager.IsUserBlocked("bob"));
-        ui.Verify(u => u.PrintSystemMessage("[ERRORE] Impossibile bloccare bob (Utente non trovato o sei tu).", true), Times.Once);
+        ui.Received(1).PrintSystemMessage("[ERRORE] Impossibile bloccare bob (Utente non trovato o sei tu).", true);
     }
 
     [Fact]
     public async Task UnblockUserAsync_WhenSuccess_RemovesFromCache()
     {
         var network = CreateNetworkMock();
-        network.Setup(n => n.BlockUserAsync("bob")).ReturnsAsync(true);
-        network.Setup(n => n.UnblockUserAsync("bob")).ReturnsAsync(true);
-        var manager = new ChatManager(network.Object, new Mock<UiService>().Object, CreateKeyService());
+        network.BlockUserAsync("bob").Returns(true);
+        network.UnblockUserAsync("bob").Returns(true);
+        var manager = new ChatManager(network, Substitute.For<UiService>(), CreateKeyService());
 
         await manager.BlockUserAsync("bob");
         await manager.UnblockUserAsync("bob");
@@ -67,40 +68,38 @@ public class ChatManagerTests
     public async Task RefreshCurrentViewAsync_WhenPublic_DelegatesToSwitchPublic()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.SwitchToPublicAsync()).Returns(Task.CompletedTask);
-        manager.Setup(m => m.RefreshCurrentViewAsync()).CallBase();
+        manager.Configure().SwitchToPublicAsync().Returns(Task.CompletedTask);
 
-        await manager.Object.RefreshCurrentViewAsync();
+        await manager.RefreshCurrentViewAsync();
 
-        manager.Verify(m => m.SwitchToPublicAsync(), Times.Once);
-        manager.Verify(m => m.SwitchToPrivateAsync(It.IsAny<string>()), Times.Never);
+        await manager.Received(1).SwitchToPublicAsync();
+        await manager.DidNotReceive().SwitchToPrivateAsync(Arg.Any<string>());
     }
 
     [Fact]
     public async Task RefreshCurrentViewAsync_WhenPrivate_DelegatesToSwitchPrivate()
     {
         var manager = CreateManagerMock();
-        SetChatType(manager.Object, MessageType.Private);
-        SetPartner(manager.Object, "bob");
-        manager.Setup(m => m.SwitchToPrivateAsync("bob")).Returns(Task.CompletedTask);
-        manager.Setup(m => m.RefreshCurrentViewAsync()).CallBase();
+        SetChatType(manager, MessageType.Private);
+        SetPartner(manager, "bob");
+        manager.Configure().SwitchToPrivateAsync("bob").Returns(Task.CompletedTask);
 
-        await manager.Object.RefreshCurrentViewAsync();
+        await manager.RefreshCurrentViewAsync();
 
-        manager.Verify(m => m.SwitchToPrivateAsync("bob"), Times.Once);
+        await manager.Received(1).SwitchToPrivateAsync("bob");
     }
 
     [Fact]
     public async Task SwitchToPrivateAsync_WhenUserDoesNotExist_PrintsError()
     {
         var network = CreateNetworkMock();
-        network.Setup(n => n.CheckUserExists("ghost")).ReturnsAsync(false);
-        var ui = new Mock<UiService>();
-        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService()) { MyUsername = "alice" };
+        network.CheckUserExists("ghost").Returns(false);
+        var ui = Substitute.For<UiService>();
+        var manager = new ChatManager(network, ui, CreateKeyService()) { MyUsername = "alice" };
 
         await manager.SwitchToPrivateAsync("ghost");
 
-        ui.Verify(u => u.PrintSystemMessage("[ERRORE] Utente ghost non trovato.", true), Times.Once);
+        ui.Received(1).PrintSystemMessage("[ERRORE] Utente ghost non trovato.", true);
         Assert.Equal(MessageType.Public, manager.CurrentChatType);
     }
 
@@ -115,22 +114,22 @@ public class ChatManagerTests
         };
 
         var network = CreateNetworkMock();
-        network.Setup(n => n.CheckUserExists("bob")).ReturnsAsync(true);
-        network.Setup(n => n.GetPrivateHistory("alice", "bob")).ReturnsAsync(history);
-        network.Setup(n => n.MarkAsRead("bob")).Returns(Task.CompletedTask);
+        network.CheckUserExists("bob").Returns(true);
+        network.GetPrivateHistory("alice", "bob").Returns(history);
+        network.MarkAsRead("bob").Returns(Task.CompletedTask);
 
-        var ui = new Mock<UiService>();
-        ui.Setup(u => u.ReadPassword()).Returns(sharedKey);
-        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService()) { MyUsername = "alice" };
+        var ui = Substitute.For<UiService>();
+        ui.ReadPassword().Returns(sharedKey);
+        var manager = new ChatManager(network, ui, CreateKeyService()) { MyUsername = "alice" };
         manager.InitializeCryptoSession("alice", "password");
 
         await manager.SwitchToPrivateAsync("bob");
 
         Assert.Equal(MessageType.Private, manager.CurrentChatType);
         Assert.Equal("bob", manager.CurrentChatPartnerName);
-        network.Verify(n => n.MarkAsRead("bob"), Times.Once);
-        ui.Verify(u => u.PrintMessage("alice", "1", It.IsAny<DateTime>(), true, true, MessageType.Private, false), Times.Once);
-        ui.Verify(u => u.PrintMessage("bob", "2", It.IsAny<DateTime>(), false, false, MessageType.Private, false), Times.Once);
+        await network.Received(1).MarkAsRead("bob");
+        ui.Received(1).PrintMessage("alice", "1", Arg.Any<DateTime>(), true, true, MessageType.Private, false);
+        ui.Received(1).PrintMessage("bob", "2", Arg.Any<DateTime>(), false, false, MessageType.Private, false);
     }
 
     [Fact]
@@ -142,26 +141,26 @@ public class ChatManagerTests
         };
 
         var network = CreateNetworkMock();
-        network.Setup(n => n.CheckUserExists("bob")).ReturnsAsync(true);
-        network.Setup(n => n.GetPrivateHistory("alice", "bob")).ReturnsAsync(history);
-        network.Setup(n => n.MarkAsRead("bob")).Returns(Task.CompletedTask);
+        network.CheckUserExists("bob").Returns(true);
+        network.GetPrivateHistory("alice", "bob").Returns(history);
+        network.MarkAsRead("bob").Returns(Task.CompletedTask);
 
-        var ui = new Mock<UiService>();
-        ui.Setup(u => u.ReadPassword()).Returns("wrong-key");
+        var ui = Substitute.For<UiService>();
+        ui.ReadPassword().Returns("wrong-key");
 
-        var manager = new ChatManager(network.Object, ui.Object, CreateKeyService()) { MyUsername = "alice" };
+        var manager = new ChatManager(network, ui, CreateKeyService()) { MyUsername = "alice" };
         manager.InitializeCryptoSession("alice", "password");
 
         await manager.SwitchToPrivateAsync("bob");
 
         Assert.Equal(MessageType.Public, manager.CurrentChatType);
-        network.Verify(n => n.MarkAsRead("bob"), Times.Never);
+        await network.DidNotReceive().MarkAsRead("bob");
     }
 
-    private static Mock<NetworkService> CreateNetworkMock()
+    private static NetworkService CreateNetworkMock()
     {
         var options = Options.Create(new ClientSettings { ServerUrl = "http://localhost" });
-        return new Mock<NetworkService>(options) { CallBase = false };
+        return Substitute.For<NetworkService>(options);
     }
 
     private static PrivateChatKeyService CreateKeyService()
@@ -178,11 +177,11 @@ public class ChatManagerTests
         return new PrivateChatKeyService(settings);
     }
 
-    private static Mock<ChatManager> CreateManagerMock()
+    private static ChatManager CreateManagerMock()
     {
         var network = CreateNetworkMock();
-        var ui = new Mock<UiService>();
-        return new Mock<ChatManager>(network.Object, ui.Object, CreateKeyService()) { CallBase = false };
+        var ui = Substitute.For<UiService>();
+        return Substitute.ForPartsOf<ChatManager>(network, ui, CreateKeyService());
     }
 
     private static void SetChatType(ChatManager manager, MessageType type)
