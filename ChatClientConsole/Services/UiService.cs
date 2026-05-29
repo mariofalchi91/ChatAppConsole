@@ -24,7 +24,7 @@ public class UiService
         lock (_consoleLock)
         {
             ClearCurrentLine();
-            var timestamp = $"[{time:HH:mm.ss}]";
+            var timestamp = $"[{time:yyyy-MM-dd HH:mm:ss}]";
             string prefix = type == MessageType.Private ? "[PRIVATO] " : "";
             var formattedMsg = $"{timestamp} {prefix}{sender}: {content}";
 
@@ -101,7 +101,7 @@ public class UiService
                 if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
                 {
                     pass += key.KeyChar;
-                    Console.Write("*");
+                    //Console.Write("*"); // non stampo nemmeno l'asterisco!
                 }
                 else if (key.Key == ConsoleKey.Backspace && pass.Length > 0)
                 {
