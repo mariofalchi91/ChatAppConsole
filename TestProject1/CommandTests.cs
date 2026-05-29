@@ -4,7 +4,7 @@ using ChatClientConsole.Services;
 using ChatCommons;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Moq;
+using NSubstitute;
 
 namespace TestProject1;
 
@@ -13,7 +13,7 @@ public class CommandTests
     [Fact]
     public void BlockCommand_CanExecute_WorksForExpectedInputs()
     {
-        var command = new BlockCommand(CreateManagerMock().Object, new Mock<UiService>().Object);
+        var command = new BlockCommand(CreateManagerMock(), Substitute.For<UiService>());
 
         Assert.True(command.CanExecute("#block"));
         Assert.True(command.CanExecute("#block user"));
@@ -23,30 +23,30 @@ public class CommandTests
     [Fact]
     public async Task BlockCommand_ExecuteAsync_InvalidSyntax_PrintsError()
     {
-        var ui = new Mock<UiService>();
-        var command = new BlockCommand(CreateManagerMock().Object, ui.Object);
+        var ui = Substitute.For<UiService>();
+        var command = new BlockCommand(CreateManagerMock(), ui);
 
         await command.ExecuteAsync("#block");
 
-        ui.Verify(u => u.Print("Sintassi errata!", false), Times.Once);
+        ui.Received(1).Print("Sintassi errata!", false);
     }
 
     [Fact]
     public async Task BlockCommand_ExecuteAsync_ValidInput_CallsManager()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.BlockUserAsync("alice")).Returns(Task.CompletedTask);
-        var command = new BlockCommand(manager.Object, new Mock<UiService>().Object);
+        manager.BlockUserAsync("alice").Returns(Task.CompletedTask);
+        var command = new BlockCommand(manager, Substitute.For<UiService>());
 
         await command.ExecuteAsync("#block alice");
 
-        manager.Verify(m => m.BlockUserAsync("alice"), Times.Once);
+        await manager.Received(1).BlockUserAsync("alice");
     }
 
     [Fact]
     public void UnblockCommand_CanExecute_WorksAsExpected()
     {
-        var command = new UnblockCommand(CreateManagerMock().Object, new Mock<UiService>().Object);
+        var command = new UnblockCommand(CreateManagerMock(), Substitute.For<UiService>());
 
         Assert.True(command.CanExecute("#unblock"));
         Assert.True(command.CanExecute("#unblock user"));
@@ -57,18 +57,18 @@ public class CommandTests
     public async Task UnblockCommand_ExecuteAsync_ValidInput_CallsManager()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.UnblockUserAsync("bob")).Returns(Task.CompletedTask);
-        var command = new UnblockCommand(manager.Object, new Mock<UiService>().Object);
+        manager.UnblockUserAsync("bob").Returns(Task.CompletedTask);
+        var command = new UnblockCommand(manager, Substitute.For<UiService>());
 
         await command.ExecuteAsync("#unblock bob");
 
-        manager.Verify(m => m.UnblockUserAsync("bob"), Times.Once);
+        await manager.Received(1).UnblockUserAsync("bob");
     }
 
     [Fact]
     public void PrivateChatCommand_CanExecute_RequiresAtAndUsername()
     {
-        var command = new PrivateChatCommand(CreateManagerMock().Object);
+        var command = new PrivateChatCommand(CreateManagerMock());
 
         Assert.True(command.CanExecute("@alice"));
         Assert.False(command.CanExecute("alice"));
@@ -79,18 +79,18 @@ public class CommandTests
     public async Task PrivateChatCommand_ExecuteAsync_CallsSwitchToPrivate()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.SwitchToPrivateAsync("alice")).Returns(Task.CompletedTask);
-        var command = new PrivateChatCommand(manager.Object);
+        manager.SwitchToPrivateAsync("alice").Returns(Task.CompletedTask);
+        var command = new PrivateChatCommand(manager);
 
         await command.ExecuteAsync("@alice");
 
-        manager.Verify(m => m.SwitchToPrivateAsync("alice"), Times.Once);
+        await manager.Received(1).SwitchToPrivateAsync("alice");
     }
 
     [Fact]
     public void ExitCommand_CanExecute_OnlyForExitToken()
     {
-        var command = new ExitCommand(new Mock<UiService>().Object, CreateManagerMock().Object);
+        var command = new ExitCommand(Substitute.For<UiService>(), CreateManagerMock());
 
         Assert.True(command.CanExecute("#exit"));
         Assert.False(command.CanExecute("#exit now"));
@@ -99,113 +99,106 @@ public class CommandTests
     [Fact]
     public async Task ExitCommand_ExecuteAsync_InPublic_PrintsInfo()
     {
-        var ui = new Mock<UiService>();
+        var ui = Substitute.For<UiService>();
         var manager = CreateManagerMock();
-        SetChatType(manager.Object, MessageType.Public);
-        var command = new ExitCommand(ui.Object, manager.Object);
+        SetChatType(manager, MessageType.Public);
+        var command = new ExitCommand(ui, manager);
 
         await command.ExecuteAsync("#exit");
 
-        ui.Verify(u => u.PrintSystemMessage("[INFO] Sei già nella pubblica.", true), Times.Once);
+        ui.Received(1).PrintSystemMessage("[INFO] Sei già nella pubblica.", true);
     }
 
     [Fact]
     public async Task ExitCommand_ExecuteAsync_InPrivate_SwitchesToPublic()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.SwitchToPublicAsync()).Returns(Task.CompletedTask);
-        SetChatType(manager.Object, MessageType.Private);
-        var command = new ExitCommand(new Mock<UiService>().Object, manager.Object);
+        manager.SwitchToPublicAsync().Returns(Task.CompletedTask);
+        SetChatType(manager, MessageType.Private);
+        var command = new ExitCommand(Substitute.For<UiService>(), manager);
 
         await command.ExecuteAsync("#exit");
 
-        manager.Verify(m => m.SwitchToPublicAsync(), Times.Once);
+        await manager.Received(1).SwitchToPublicAsync();
     }
 
     [Fact]
     public async Task RestoreCommand_ExecuteAsync_RefreshesView()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.RefreshCurrentViewAsync()).Returns(Task.CompletedTask);
-        var command = new RestoreCommand(manager.Object);
+        manager.RefreshCurrentViewAsync().Returns(Task.CompletedTask);
+        var command = new RestoreCommand(manager);
 
         await command.ExecuteAsync("#restore");
 
-        manager.Verify(m => m.RefreshCurrentViewAsync(), Times.Once);
+        await manager.Received(1).RefreshCurrentViewAsync();
     }
 
     [Fact]
     public async Task BlockedListCommand_ExecuteAsync_PrintsListThroughManager()
     {
         var manager = CreateManagerMock();
-        manager.Setup(m => m.PrintBlockedList());
-        var command = new BlockedListCommand(manager.Object);
+        var command = new BlockedListCommand(manager);
 
         await command.ExecuteAsync("#blocked");
 
-        manager.Verify(m => m.PrintBlockedList(), Times.Once);
+        manager.Received(1).PrintBlockedList();
     }
 
     [Fact]
     public async Task PasswordCommand_ExecuteAsync_MismatchedPasswords_ShowsErrorAndSkipsNetwork()
     {
-        var ui = new Mock<UiService>();
-        ui.SetupSequence(u => u.ReadPassword())
-            .Returns("oldPwd")
-            .Returns("newPwd1")
-            .Returns("newPwd2");
+        var ui = Substitute.For<UiService>();
+        ui.ReadPassword().Returns("oldPwd", "newPwd1", "newPwd2");
 
         var manager = CreateManagerMock();
-        manager.Object.MyUsername = "alice";
+        manager.MyUsername = "alice";
 
         var network = CreateNetworkMock();
-        var command = new PasswordCommand(ui.Object, manager.Object, network.Object);
+        var command = new PasswordCommand(ui, manager, network);
 
         await command.ExecuteAsync("#password");
 
-        network.Verify(n => n.ChangePasswordAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        ui.Verify(u => u.PrintSystemMessage("[ERRORE] Le nuove password non coincidono.", true), Times.Once);
+        await network.DidNotReceive().ChangePasswordAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>());
+        ui.Received(1).PrintSystemMessage("[ERRORE] Le nuove password non coincidono.", true);
     }
 
     [Fact]
     public async Task PasswordCommand_ExecuteAsync_ValidInputs_CallsChangePassword()
     {
-        var ui = new Mock<UiService>();
-        ui.SetupSequence(u => u.ReadPassword())
-            .Returns("oldPwd")
-            .Returns("newPassword")
-            .Returns("newPassword");
+        var ui = Substitute.For<UiService>();
+        ui.ReadPassword().Returns("oldPwd", "newPassword", "newPassword");
 
         var manager = CreateManagerMock();
-        manager.Object.MyUsername = "alice";
+        manager.MyUsername = "alice";
 
         var network = CreateNetworkMock();
-        network.Setup(n => n.ChangePasswordAsync("alice", "oldPwd", "newPassword")).ReturnsAsync(true);
-        var command = new PasswordCommand(ui.Object, manager.Object, network.Object);
+        network.ChangePasswordAsync("alice", "oldPwd", "newPassword").Returns(true);
+        var command = new PasswordCommand(ui, manager, network);
 
         await command.ExecuteAsync("#password");
 
-        network.Verify(n => n.ChangePasswordAsync("alice", "oldPwd", "newPassword"), Times.Once);
-        ui.Verify(u => u.PrintSystemMessage("[SUCCESSO] Password aggiornata correttamente!", true), Times.Once);
+        await network.Received(1).ChangePasswordAsync("alice", "oldPwd", "newPassword");
+        ui.Received(1).PrintSystemMessage("[SUCCESSO] Password aggiornata correttamente!", true);
     }
 
     [Fact]
     public async Task HelpCommand_ExecuteAsync_PrintsSortedCommandList()
     {
-        var ui = new Mock<UiService>();
+        var ui = Substitute.For<UiService>();
 
         var services = new ServiceCollection();
         services.AddSingleton<IClientCommand>(new FakeCommand("#zeta", "z"));
         services.AddSingleton<IClientCommand>(new FakeCommand("#alpha", "a"));
         var provider = services.BuildServiceProvider();
 
-        var command = new HelpCommand(ui.Object, provider);
+        var command = new HelpCommand(ui, provider);
 
         await command.ExecuteAsync("#help");
 
-        ui.Verify(u => u.PrintSystemMessage(It.Is<string>(text =>
+        ui.Received(1).PrintSystemMessage(Arg.Is<string>(text =>
             text.Contains("#alpha") && text.Contains("#zeta") &&
-            text.IndexOf("#alpha", StringComparison.Ordinal) < text.IndexOf("#zeta", StringComparison.Ordinal)), false), Times.Once);
+            text.IndexOf("#alpha", StringComparison.Ordinal) < text.IndexOf("#zeta", StringComparison.Ordinal)), false);
     }
 
     [Fact]
@@ -213,15 +206,15 @@ public class CommandTests
     {
         var manager = CreateManagerMock();
         string setError = string.Empty;
-        manager.Setup(m => m.SetPrivateKey("bob", "secret", out setError)).Returns(true);
+        manager.SetPrivateKey("bob", "secret", out setError).Returns(true);
 
-        var ui = new Mock<UiService>();
-        ui.Setup(u => u.ReadPassword()).Returns("secret");
-        var command = new KeySetCommand(manager.Object, ui.Object);
+        var ui = Substitute.For<UiService>();
+        ui.ReadPassword().Returns("secret");
+        var command = new KeySetCommand(manager, ui);
 
         await command.ExecuteAsync("#keyset bob");
 
-        manager.Verify(m => m.SetPrivateKey("bob", "secret", out setError), Times.Once);
+        manager.Received(1).SetPrivateKey("bob", "secret", out setError);
     }
 
     [Fact]
@@ -229,26 +222,26 @@ public class CommandTests
     {
         var manager = CreateManagerMock();
         string resetError = string.Empty;
-        manager.Setup(m => m.ResetPrivateKey("bob", out resetError)).Returns(true);
+        manager.ResetPrivateKey("bob", out resetError).Returns(true);
 
-        var command = new KeyResetCommand(manager.Object, new Mock<UiService>().Object);
+        var command = new KeyResetCommand(manager, Substitute.For<UiService>());
 
         await command.ExecuteAsync("#keyreset bob");
 
-        manager.Verify(m => m.ResetPrivateKey("bob", out resetError), Times.Once);
+        manager.Received(1).ResetPrivateKey("bob", out resetError);
     }
 
-    private static Mock<NetworkService> CreateNetworkMock()
+    private static NetworkService CreateNetworkMock()
     {
         var options = Options.Create(new ClientSettings { ServerUrl = "http://localhost" });
-        return new Mock<NetworkService>(options) { CallBase = false };
+        return Substitute.For<NetworkService>(options);
     }
 
-    private static Mock<ChatManager> CreateManagerMock()
+    private static ChatManager CreateManagerMock()
     {
         var network = CreateNetworkMock();
-        var ui = new Mock<UiService>();
-        return new Mock<ChatManager>(network.Object, ui.Object, CreateKeyService()) { CallBase = false };
+        var ui = Substitute.For<UiService>();
+        return Substitute.For<ChatManager>(network, ui, CreateKeyService());
     }
 
     private static PrivateChatKeyService CreateKeyService()

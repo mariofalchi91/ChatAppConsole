@@ -3,7 +3,7 @@ using ChatServer.Configs;
 using ChatServer.Repository;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Moq;
+using NSubstitute;
 
 namespace TestProject1;
 
@@ -213,8 +213,8 @@ public class FileChatRepositoryTests
     private static FileChatRepository CreateRepository(string folder)
     {
         var options = Options.Create(new ChatSettings { DataFolderPath = folder });
-        var logger = new Mock<ILogger<FileChatRepository>>();
-        return new FileChatRepository(options, logger.Object);
+        var logger = Substitute.For<ILogger<FileChatRepository>>();
+        return new FileChatRepository(options, logger);
     }
 
     private static string CreateTempFolder()
