@@ -2,6 +2,30 @@
 
 This suite covers everything that has been assessed as **unit-testable** in the project, excluding real integration/network/database testing.
 
+## Test Organization
+
+Tests are organized into folders corresponding to the projects they test:
+
+```
+TestProject1/
+├── ChatServer/           # Tests for ChatServer project
+│   ├── ChatHubTests.cs
+│   ├── InMemoryChatRepositoryTests.cs
+│   ├── FileChatRepositoryTests.cs
+│   └── ConfigValidationTests.cs
+├── ChatClientConsole/    # Tests for ChatClientConsole project
+│   ├── CommandTests.cs
+│   ├── ChatManagerTests.cs
+│   ├── ClientSettingsValidationTests.cs
+│   └── PrivateChatKeyServiceTests.cs
+└── ChatCommons/          # Tests for ChatCommons project
+    ├── ChatMessageTests.cs
+    ├── ChatEventsTests.cs
+    ├── CryptoServiceTest.cs
+    ├── EnumTests.cs
+    └── UnitTest1.cs (GeneralSanityTests)
+```
+
 ## What We Are Testing
 
 ### ChatCommons
@@ -85,4 +109,24 @@ dotnet build ChatAppConsole.slnx --no-restore --configuration Debug /p:TreatWarn
 dotnet test --configuration Debug --logger "trx;LogFileName=test-results.trx"
 ```
 
+Run tests for a specific project folder:
+
+```bash
+# Run only ChatServer tests
+dotnet test --configuration Debug --filter "FullyQualifiedName~TestProject1.ChatServer"
+
+# Run only ChatClientConsole tests
+dotnet test --configuration Debug --filter "FullyQualifiedName~TestProject1.ChatClientConsole"
+
+# Run only ChatCommons tests
+dotnet test --configuration Debug --filter "FullyQualifiedName~TestProject1.ChatCommons"
+```
+
 If the environment runs from a Windows UNC path, some test hosts may fail while loading `testhost.dll`; in that case use a non-UNC local path or a consistent WSL/local environment.
+
+## Test Statistics
+
+- **Total tests**: 100
+- **ChatServer tests**: 4 files
+- **ChatClientConsole tests**: 4 files
+- **ChatCommons tests**: 5 files
